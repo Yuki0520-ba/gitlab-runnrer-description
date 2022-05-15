@@ -1,0 +1,28 @@
+
+# キャッシュの保存先
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# pip installしたものをキャッシュするためにvirtualenvを導入
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+# 実行前スクリプト
+before_script:
+  - python3 -V
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+
+# testというstageを使う
+# 長さが79文字以下はちょっといやだったので無視
+test:
+  script:
+    # - python setup.py test
+    - pip install flake8
+    - flake8 *.py --exclude venv/,.cache --ignore E501
+  only:
+    refs:
+      - merge_requests
