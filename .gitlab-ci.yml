@@ -12,7 +12,6 @@ cache:
 # 実行前スクリプト
 before_script:
   - python3 -V
-  - sudo apt install python3-pip -y
   - virtualenv venv
   - source venv/bin/activate
 
