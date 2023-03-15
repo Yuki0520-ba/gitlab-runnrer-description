@@ -97,119 +97,58 @@ If you have run out of energy or time for your project, put a note at the top of
 
 
 
+```dockerfile
+FROM php:7.4-apache
+RUN docker-php-ext-install mysqli
+COPY . /var/www/html
+```
+
 ```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: pgpassword
-type: Opaque
-data:
-  postgresql-password: cGFzc3dvcmQK
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: my-wordpress-deployment
+  labels:
+    app: my-wordpress
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
-      app: postgres
+      app: my-wordpress
   template:
     metadata:
       labels:
-        app: postgres
+        app: my-wordpress
     spec:
       containers:
-      - name: postgres
-        image: postgres:13
+      - name: my-wordpress-container
+        image: my-wordpress-image
+        ports:
+        - containerPort: 80
         env:
-        - name: POSTGRES_PASSWORD
+        - name: WORDPRESS_DB_HOST
+          value: mysql-service
+        - name: WORDPRESS_DB_USER
           valueFrom:
             secretKeyRef:
-              name: pgpassword
-              key: postgresql-password
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: postgres-data
-          mountPath: /var/lib/postgresql/data
-      volumes:
-      - name: postgres-data
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+              name: mysql-credentials
+              key: username
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: password
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: my-wordpress-service
 spec:
   selector:
-    app: postgres
+    app: my-wordpress
   ports:
-    - name: postgres
-      port: 5432
-      targetPort: 5432
-```
-
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: redmine-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: redmine
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: redmine
-  template:
-    metadata:
-      labels:
-        app: redmine
-    spec:
-      containers:
-      - name: redmine
-        image: redmine:4.2.2-passenger
-        env:
-        - name: REDMINE_DB_POSTGRES
-          value: "true"
-        - name: REDMINE_DB_DATABASE
-          value: "redmine_production"
-        - name: REDMINE_DB_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: pgpassword
-              key: postgresql-username
-        - name: REDMINE_DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: pgpassword
-              key: postgresql-password
-        ports:
-        - containerPort: 3000
-        volumeMounts:
-        -
+  - name: http
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
 ```
